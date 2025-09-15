@@ -1,86 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Clock, ChevronDown } from 'lucide-react';
 
-interface BundleTier {
-  min: number;
-  max: number | null;
-  discount: number;
-  isMinimum?: boolean;
-}
-
-interface BundleDealsProps {
-  className?: string;
-  currentTier?: BundleTier | null;
-  currentQuantity?: number;
-  onQuantitySelect?: (quantity: number) => void;
-  calculatePrice?: (discount: number) => number;
-  bundleDeals?: BundleTier[];
-  productPrice?: number;
-  onPriceChange?: (price: number, tier: BundleTier | null) => void;
-  enabled?: boolean;
-}
-
-const BundleDeals = ({ 
-  className = '', 
-  currentTier = null,
-  currentQuantity = 1,
-  onQuantitySelect = null, 
-  calculatePrice = null,
-  bundleDeals = [],
-  productPrice = 100,
-  onPriceChange = null,
-  enabled = true
-}: BundleDealsProps) => {
-  const [selectedTier, setSelectedTier] = useState<BundleTier | null>(currentTier);
-  // Use provided bundle deals or fallback to default, sorted by min quantity ascending
-  const visibleTiers = (bundleDeals.length > 0 ? bundleDeals : [
-    { min: 1, max: 9, discount: 0, isMinimum: true },
-    { min: 10, max: 49, discount: 5 },
-    { min: 50, max: 99, discount: 10 },
-    { min: 100, max: 499, discount: 15 },
-    { min: 500, max: 999, discount: 20 },
-    { min: 1000, max: null, discount: 25 }
-  ]).sort((a, b) => a.min - b.min);
-
-  // Calculate price based on discount
-  const calculateFinalPrice = calculatePrice || ((discount) => productPrice * (1 - discount / 100));
+const BundleDeals = ({ className = "" }) => {
   const [showAll, setShowAll] = useState(false);
+  const [selectedTier, setSelectedTier] = useState(null);
   
-  // Get current tier based on quantity or current tier
-  const getCurrentTier = () => {
-    if (selectedTier) return selectedTier;
-    if (currentTier) return currentTier;
-    return visibleTiers.find(tier => {
-      if (tier.max === null) return currentQuantity >= tier.min;
-      return currentQuantity >= tier.min && currentQuantity <= tier.max;
-    }) || visibleTiers[0];
+  // Sample data - you can replace this with your actual data
+  const visibleTiers = [
+    { min: 1, max: 10, discount: 0, isMinimum: true },
+    { min: 11, max: 50, discount: 5, isMinimum: false },
+    { min: 51, max: 100, discount: 10, isMinimum: false },
+    { min: 101, max: 250, discount: 15, isMinimum: false },
+    { min: 251, max: 500, discount: 20, isMinimum: false },
+    { min: 501, max: Infinity, discount: 25, isMinimum: false }
+  ];
+  
+  // Base price - you can adjust this
+  const basePrice = 100;
+  
+  // Calculate displayed tiers based on showAll state
+  const displayedTiers = useMemo(() => {
+    return showAll ? visibleTiers : visibleTiers.slice(0, 3);
+  }, [showAll, visibleTiers]);
+  
+  // Find current tier (could be based on current quantity or selection)
+  const currentTier = selectedTier || visibleTiers[0];
+  const activeTier = selectedTier;
+  
+  // Calculate final price with discount
+  const calculateFinalPrice = (discount) => {
+    return basePrice * (1 - discount / 100);
   };
-  
-  const activeTier = getCurrentTier();
-  const currentPrice = calculateFinalPrice(activeTier?.discount || 0);
   
   // Handle tier selection
-  const handleTierSelect = (tier: BundleTier) => {
+  const handleTierSelect = (tier) => {
     setSelectedTier(tier);
-    const tierPrice = calculateFinalPrice(tier.discount);
-    onPriceChange?.(tierPrice, tier);
-    onQuantitySelect?.(tier.min);
   };
-  
-  // Notify parent of price changes when tier changes
-  React.useEffect(() => {
-    if (onPriceChange && activeTier) {
-      onPriceChange(currentPrice, activeTier);
-    }
-  }, [currentPrice, activeTier, onPriceChange]);
-
-  // Show only first 3 tiers initially
-  const displayedTiers = showAll ? visibleTiers : visibleTiers.slice(0, 3);
-
-  // Don't render if disabled
-  if (!enabled) {
-    return null;
-  }
 
   return (
     <div className={`space-y-4 ${className}`}>
@@ -134,7 +89,7 @@ const BundleDeals = ({
                   ? "border-orange-500 ring-2 ring-orange-200"
                   : "border-gray-300 hover:border-gray-400"}`}
             >
-              
+
               {/* Top section - Unit info */}
               <div className="bg-white">
                 <div className="text-sm font-bold text-gray-900 text-center py-1">
